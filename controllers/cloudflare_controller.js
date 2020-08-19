@@ -1,36 +1,32 @@
 const express = require('express');
-const router = express.Router();
-module.exports = router;
 
 const CloudflareModule = require('../modules/cloudflare_module');
 
+const router = express.Router();
 
-router.post('/dns',setDns);
 
-// dns record file!!
-// here is the POST input this function validate the data from the client
-async function setDns(req,res){
+/**
+ * here is the POST input this function validate the data from the client
+ */
+setDNS = async(req,res) =>{
     try {
-        let Domain_Name,Domain_IP,asDomain,isSetDomain;
+        let Domain_Name,Domain_IP,ZoneID,isSetDomain;
         Domain_Name = req.body.domain;
         Domain_IP = req.body.ip;
 
-        // test domain name
         if(!Domain_Name) throw "Missing Domain Name";
         if(!CloudflareModule.isValidDomain(Domain_Name)) throw "invalid Domain Name";
 
-        // test ip 
         if(!Domain_IP) throw "Missing Domain IP";
         if(!CloudflareModule.isValidIP(Domain_IP)) throw "invalid IP";
 
-        // checking if domain exist
-        asDomain = await CloudflareModule.asDomainCloudflare(Domain_Name)
-        if(!asDomain.status) throw asDomain.error;
+        ZoneID = await CloudflareModule.manageDomainZone(Domain_Name)
+        if(!ZoneID) throw 'undefined ZoneID';
 
-        // set domain in cloudflare
-        isSetDomain = await CloudflareModule.setCloudflareDomain(Domain_Name,Domain_IP)
-        if(!isSetDomain.status) throw isSetDomain.error;
+        isSetDomain = await CloudflareModule.ManageARecord(Domain_Name,Domain_IP,ZoneID)
+        if(!isSetDomain.success) throw isSetDomain.error
 
+        
         res.json({
             success:true,
         })
@@ -43,3 +39,7 @@ async function setDns(req,res){
         })
     }
 }
+
+router.post('/dns',setDNS);
+
+module.exports = router;
